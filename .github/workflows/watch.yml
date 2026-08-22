@@ -1,0 +1,63 @@
+name: ev-nobetcisi
+
+on:
+  schedule:
+    # 30 dakika, bilerek. Private repo ucretsiz kotasi ayda 2000 Actions
+    # dakikasi ve GitHub her kosuyu yukari yuvarliyor. */5 gunde 288 kosu
+    # demek, kotayi ~7 gunde bitirir ve ayin kalani hic calismaz.
+    # */30 gunde 48 kosu = ayda ~1440 dakika, kotaya sigiyor.
+    # Asil tarama yerel kosuda (scripts/yerel-kosu.ps1); bu katman
+    # bilgisayar kapaliyken devreye giren yedek.
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Iki kosu ayni anda calisip state dosyasini ezmesin.
+concurrency:
+  group: watcher
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Bagimliliklari kur
+        run: pip install -e .
+
+      - name: Nobetciyi calistir
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          USER_GENDER: ${{ vars.USER_GENDER || 'f' }}
+        run: python run.py
+
+      - name: Durumu commit'le
+        run: |
+          git config user.name "ev-nobetcisi"
+          git config user.email "actions@github.com"
+          git add state/
+          if git diff --staged --quiet; then
+            echo "durum degismedi"
+            exit 0
+          fi
+          git commit -m "durum guncellendi [skip ci]"
+          # Baska bir kosu araya girdiyse once onun degisikligini al.
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "push carpisti, yeniden deneniyor ($attempt)"
+            git pull --rebase --autostash
+          done
+          echo "push basarisiz - bir sonraki kosu tekrar dener"
+
+# Kayit tetikleyici: GitHub ilk push ta workflow u indekslemedi.

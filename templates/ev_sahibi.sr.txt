@@ -1,0 +1,9 @@
+Poštovanje,
+
+Vaš oglas za stan ({muni}, {price} EUR) mi je privukao pažnju. Da li je još slobodan?
+
+{student} sam Medicinskog fakulteta u Beogradu. Tražim stan na duži period. {uredan_c} sam i {miran}, a plaćanje je uvek na vreme.
+
+Radujem se Vašem odgovoru.
+
+Srdačan pozdrav.
