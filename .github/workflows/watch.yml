@@ -42,6 +42,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # Kisa bekleme: bir onceki is kendi yerine bunu baslatip hemen
+          # cikiyor. Beklemeden bakarsak onu hala "calisiyor" gorup gereksiz
+          # yere kendimizi iptal ederiz.
+          sleep 30
+
           # Ayni workflow'un devam eden baska bir kosusu varsa ve o benden
           # once basladiysa (daha kucuk id), bu kosu gereksiz - cik.
           ONCEKI=$(gh api \
@@ -112,3 +117,23 @@ jobs:
 
           echo "--- dongu bitti, $TUR tur yapildi ---"
           durumu_kaydet
+
+      - name: Yerine yenisini baslat
+        # Is bittiginde ardilini kendi tetikler, boylece devir teslimde
+        # bosluk olmaz. GITHUB_TOKEN ile workflow_dispatch calismiyor
+        # (GitHub dongu olusmasin diye engelliyor), bu yuzden ayri bir
+        # kisisel erisim anahtari gerekiyor: YENILEME_TOKEN.
+        #
+        # Anahtar tanimli degilse bu adim sessizce atlanir ve sistem
+        # zamanlayiciya geri duser - o zaman devir teslimde yarim saate
+        # varan bosluk olabilir.
+        if: always() && steps.nobet.outputs.devam == 'evet'
+        env:
+          GH_TOKEN: ${{ secrets.YENILEME_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "YENILEME_TOKEN tanimli degil, ardil tetiklenmiyor."
+            echo "Sistem zamanlayiciya guveniyor; devir teslimde bosluk olabilir."
+            exit 0
+          fi
+          gh workflow run watch.yml --repo "$GITHUB_REPOSITORY"             && echo "ardil tetiklendi"             || echo "UYARI: ardil tetiklenemedi, zamanlayici devreye girecek"
