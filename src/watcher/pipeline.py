@@ -54,9 +54,16 @@ def run(
     store: Store,
     sources: list[Callable[[], SourceResult]],
     notifier: Notifier,
+    force_notify: bool = False,
 ) -> RunReport:
+    """force_notify: bos veritabaninda da bildirim gonder.
+
+    Normalde ilk kosu sessizdir - amac telefonu gecmis ilanlarla doldurmamak.
+    Ama bilerek sifirdan liste isteniyorsa (scripts/sifirdan-gonder.py) bu
+    korumanin devre disi birakilmasi gerekiyor.
+    """
     report = RunReport()
-    report.silent = store.is_first_run()
+    report.silent = store.is_first_run() and not force_notify
 
     all_listings = _collect(sources, report)
     report.fetched = len(all_listings)

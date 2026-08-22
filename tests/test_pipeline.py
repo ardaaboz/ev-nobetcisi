@@ -171,3 +171,17 @@ def test_first_run_records_everything_without_notifying(store, notifier, monkeyp
     assert report.silent is True
     assert report.notified == 0
     assert store.count() == 5, "ilk kosuda hepsi gorulmus sayilmali"
+
+
+def test_force_notify_overrides_first_run_silence(store, notifier):
+    """Bilerek sifirdan liste istendiginde ilk kosu sessizligi devre disi."""
+    report = run(store, [_source(_listing("1"), _listing("2", price=420, m2=41))],
+                 notifier, force_notify=True)
+    assert report.silent is False
+    assert report.notified == 2
+
+
+def test_first_run_still_silent_without_the_flag(store, notifier):
+    report = run(store, [_source(_listing("1"))], notifier)
+    assert report.silent is True
+    assert report.notified == 0
