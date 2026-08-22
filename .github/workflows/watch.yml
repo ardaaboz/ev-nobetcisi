@@ -18,9 +18,11 @@ name: ev-nobetcisi
 
 on:
   schedule:
-    # Sadece yeniden baslatici. Cogu deneme "zaten calisiyor" deyip cikacak.
-    # Saat basi bilerek kullanilmadi: GitHub'in en yogun oldugu an orasi.
-    - cron: "17,47 * * * *"
+    # Sadece yeniden baslatici, sik deneniyor. Calisan bir is varken gelen
+    # denemeler 6 saniyede cikiyor, public repoda maliyeti yok. Sik denemenin
+    # amaci devir teslim boslugunu kisaltmak: bir is bittiginde yerine yenisi
+    # ne kadar cabuk baslarsa o kadar iyi, GitHub denemelerin cogunu dusuruyor.
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:
