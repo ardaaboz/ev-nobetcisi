@@ -10,12 +10,13 @@ Bu dosyalar doğrudan düzenlenebilir. Kod değiştirmeye gerek yok, kaydet ve b
 `.sr` Sırpça (gönderilen metin), `.tr` Türkçe (ne gönderdiğini bilmen için).
 İkisini birlikte güncelle, yoksa çeviri metinle uyuşmaz.
 
+Metin her ilanda aynıdır ve bildirimlerle gönderilmez; gruba bir kez
+sabitlenir. Bu yüzden ilana özel bilgi (fiyat, semt) içermemeli.
+
 ## Kullanılabilecek yer tutucular
 
 | Yer tutucu | Ne gelir | Örnek |
 |---|---|---|
-| `{muni}` | Semt adı | `Vračar` |
-| `{price}` | Kira, EUR | `430` |
 | `{student}` | Öğrenci kelimesi, cinsiyete göre | `Studentkinja` / `Student` |
 | `{uredan_c}` | "düzenli", cümle başı büyük harf | `Uredna` / `Uredan` |
 | `{miran}` | "sessiz" | `mirna` / `miran` |
@@ -50,5 +51,7 @@ python -m pytest tests/test_outreach.py -q
 ```
 
 ```bash
-python run.py --dry-run
+python scripts/sabit-mesaj.py --goster
 ```
+
+Yeni metni gruba gönderip sabitlemek için `--goster` olmadan çalıştır.

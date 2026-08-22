@@ -98,9 +98,18 @@ def send_text(text: str) -> None:
     _post("sendMessage", _message(text))
 
 
-def send_listing(group: ListingGroup, evaluation: Evaluation, draft: Draft) -> None:
+def send_listing(group: ListingGroup, evaluation: Evaluation) -> None:
+    """Ilan basina TEK mesaj: kart.
+
+    Mesaj taslagi bilerek gonderilmiyor. Metin her ilanda neredeyse ayni
+    oldugu icin her kartin altina eklemek sohbeti sisiriyor ve asil bilgiyi
+    (fiyat, semt, sure, link) gorunmez kiliyor. Taslak gruba bir kez
+    sabitleniyor; oradan kopyalaniyor.
+
+    format_draft hala duruyor: sabitlenecek metni uretmek icin kullaniliyor
+    (scripts/sabit-mesaj.py).
+    """
     _post("sendMessage", _message(
         format_card(group, evaluation),
         reply_markup=_keyboard(group.primary.fingerprint),
     ))
-    _post("sendMessage", _message(format_draft(draft)))

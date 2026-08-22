@@ -13,8 +13,8 @@ class FakeNotifier:
         self.listings = []
         self.texts = []
 
-    def send_listing(self, group, evaluation, draft):
-        self.listings.append((group, evaluation, draft))
+    def send_listing(self, group, evaluation):
+        self.listings.append((group, evaluation))
 
     def send_text(self, text):
         self.texts.append(text)
@@ -160,7 +160,7 @@ def test_overflow_listings_arrive_on_the_next_run(store, notifier, monkeypatch):
     fourth = run(store, [_source(*many)], notifier)
     assert fourth.notified == 0, "hepsi bildirildikten sonra susmalı"
 
-    notified_ids = {g.primary.source_id for g, _, _ in notifier.listings}
+    notified_ids = {g.primary.source_id for g, _ in notifier.listings}
     assert notified_ids == {str(i) for i in range(8)}, "her ilan tam olarak bir kez gelmeli"
 
 

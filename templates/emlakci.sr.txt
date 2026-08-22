@@ -1,6 +1,6 @@
 Poštovanje,
 
-zanima me stan koji ste oglasili ({muni}, {price} EUR). Da li je još uvek slobodan?
+zanima me stan koji ste oglasili. Da li je još uvek slobodan?
 
 {student} sam Medicinskog fakulteta u Beogradu. Tražim stan na duži period. {uredan_c} sam i {miran}, plaćanje je uvek na vreme.
 

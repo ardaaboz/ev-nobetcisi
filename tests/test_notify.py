@@ -91,14 +91,19 @@ def test_keyboard_encodes_fingerprint():
     assert "rejected:abc123" in payloads
 
 
-def test_send_listing_posts_two_separate_messages(monkeypatch):
-    """Kart ve taslak ayri mesaj olmali - ayni balonda kopyalama bozulur."""
+def test_send_listing_posts_only_the_card(monkeypatch):
+    """Ilan basina TEK mesaj. Taslak her ilanda neredeyse ayni oldugu icin
+    her kartin altina eklemek sohbeti sisiriyordu; gruba bir kez sabitleniyor."""
     sent = []
     monkeypatch.setattr(notify, "_post", lambda method, payload: sent.append((method, payload)))
-    notify.send_listing(
-        _group(), Evaluation(passed=True, score=70), Draft(serbian="sr", turkish="tr")
-    )
-    assert len(sent) == 2
-    assert "reply_markup" in sent[0][1]      # kartta butonlar var
-    assert "reply_markup" not in sent[1][1]  # taslakta yok
-    assert "<pre>" in sent[1][1]["text"]
+    notify.send_listing(_group(), Evaluation(passed=True, score=70))
+    assert len(sent) == 1
+    assert "reply_markup" in sent[0][1]
+    assert "<pre>" not in sent[0][1]["text"]
+
+
+def test_format_draft_still_available_for_pinning():
+    """Sabitlenecek metni uretmek icin format_draft duruyor."""
+    message = notify.format_draft(Draft(serbian="Postovanje", turkish="Merhaba"))
+    assert message.startswith("<pre>")
+    assert "Merhaba" in message

@@ -24,6 +24,14 @@ kurmaya gerek yok.
 
 Kullanılabilir yer tutucular ve yazım kuralları: [`templates/README.md`](templates/README.md)
 
+Metin bildirimlerle birlikte gönderilmiyor: her ilanda aynı olduğu için sohbeti
+şişiriyordu. Bunun yerine gruba bir kez sabitleniyor. Şablonu değiştirdikten
+sonra yeni metni sabitlemek için:
+
+```bash
+python scripts/sabit-mesaj.py
+```
+
 Şablonlarda **doğrulanmamış hiçbir iddia yok** (sigara, peşin ödeme gibi) ve
 vergi/beli karton konusu geçmiyor. İkisi de teste bağlı; şablona sızarsa
 `pytest` kırılır.
@@ -67,7 +75,7 @@ uzun sureli is (5,5 saat), icinde her 5 dakikada:
            → skor (fakulteye sure, fiyat, semt, m2, balkon, aydinlik)
            → dedupe (once adres, yoksa baslik)
            → daha once gorulmemisleri ayikla
-           → Telegram: ilan karti + ayri mesajda kopyalanabilir Sirpca taslak
+           → Telegram: ilan basina TEK kart (taslak gruba sabitlenir)
            → state/listings.db her ~30 dakikada repoya commit'lenir
 ```
 

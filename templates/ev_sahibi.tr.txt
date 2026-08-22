@@ -1,6 +1,6 @@
 Merhaba,
 
-Daire ilanınız dikkatimi çekti ({muni}, {price} EUR). Hâlâ müsait mi?
+Daire ilanınız dikkatimi çekti. Hâlâ müsait mi?
 
 Belgrad Tıp Fakültesi öğrencisiyim. Uzun süreli kalacak bir yer arıyorum. Düzenli ve sessiz biriyim, ödemelerim her zaman zamanında olur.
 

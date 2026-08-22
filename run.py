@@ -19,10 +19,8 @@ SOURCES = [cityexpert.fetch, fourzida.fetch, halooglasi.fetch]
 class DryRunNotifier:
     """Gercek bildirim yerine terminale basar. Ayarlari dogrulamak icin."""
 
-    def send_listing(self, group, evaluation, draft) -> None:
+    def send_listing(self, group, evaluation) -> None:
         print("\n" + notify.format_card(group, evaluation))
-        print("-- taslak --")
-        print(draft.serbian)
 
     def send_text(self, text: str) -> None:
         print(f"\n[metin] {text}")

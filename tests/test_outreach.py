@@ -48,10 +48,13 @@ def test_draft_mentions_medical_faculty():
     assert "medicin" in draft(_group()).serbian.lower()
 
 
-def test_draft_includes_price_and_neighbourhood():
-    result = draft(_group(price=430, muni="Vracar"))
-    assert "430" in result.serbian
-    assert "Vracar" in result.serbian
+def test_draft_is_listing_independent():
+    """Metin gruba bir kez sabitlenip her ilanda ayni sekilde kullanilacak,
+    bu yuzden ilana ozel fiyat/semt icermemeli."""
+    a = draft(_group(price=430, muni="Vracar"))
+    b = draft(_group(price=510, muni="Zemun"))
+    assert a.serbian == b.serbian
+    assert "430" not in a.serbian and "Vracar" not in a.serbian
 
 
 def test_agency_and_owner_drafts_differ():

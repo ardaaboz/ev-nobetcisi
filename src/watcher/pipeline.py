@@ -13,13 +13,12 @@ from typing import Callable, Protocol
 from . import config
 from .dedupe import merge
 from .models import SourceResult
-from .outreach import draft as make_draft
 from .score import evaluate
 from .store import Store
 
 
 class Notifier(Protocol):
-    def send_listing(self, group, evaluation, draft) -> None: ...
+    def send_listing(self, group, evaluation) -> None: ...
     def send_text(self, text: str) -> None: ...
 
 
@@ -88,7 +87,7 @@ def run(
     cap = config.MAX_NOTIFICATIONS_PER_RUN
     for group, evaluation in fresh[:cap]:
         store.record(group, evaluation)
-        notifier.send_listing(group, evaluation, make_draft(group))
+        notifier.send_listing(group, evaluation)
         store.mark_notified(group.primary.fingerprint)
         report.notified += 1
 
