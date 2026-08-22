@@ -60,15 +60,18 @@ python run.py
 ## Nasıl çalışıyor
 
 ```
-cron (5dk) → 3 kaynak (sirali, aralarinda 1sn)
+uzun sureli is (5,5 saat), icinde her 5 dakikada:
+  3 kaynak (sirali, aralarinda 1sn)
            → normalize (tek Listing semasi)
            → sert filtre (butce, Belgrad, mobilya, bodrum/penceresiz/gunluk eleme)
            → skor (fakulteye sure, fiyat, semt, m2, balkon, aydinlik)
            → dedupe (once adres, yoksa baslik)
            → daha once gorulmemisleri ayikla
            → Telegram: ilan karti + ayri mesajda kopyalanabilir Sirpca taslak
-           → state/listings.db repoya geri commit'lenir
+           → state/listings.db her ~30 dakikada repoya commit'lenir
 ```
+
+Zamanlayici sadece isi baslatir; tarama sikligi isin kendi dongusune bagli.
 
 ## Kaynaklar
 
@@ -83,37 +86,37 @@ plandaki Task 3/4/5'teki `curl` komutlarını çalıştır.
 
 ## GitHub Actions
 
-Repo secret'ları olarak `TELEGRAM_BOT_TOKEN` ve `TELEGRAM_CHAT_ID` eklenmeli.
-İsteğe bağlı repo variable: `USER_GENDER` (`f` varsayılan, Sırpça çekim için).
+Repo **public**, bu yüzden GitHub-hosted runner dakikaları ücretsiz ve sınırsız.
+Mimari buna dayanıyor.
 
-Workflow 5 dakikada bir çalışır. GitHub bu aralığı garanti etmez - yoğun saatlerde
-10-15 dakikaya sarkabilir.
+### Neden uzun süreli iş
 
-### halooglasi neden Actions'ta gelmiyor
+GitHub ücretsiz repolarda `schedule` tetikleyicisini düzenli çalıştırmıyor.
+Ölçüldü (2026-08-22): `*/5` cron ile 70 dakikada **1** koşu tetiklendi, aynı
+sürede elle atılan `workflow_dispatch`'lerin **hepsi** anında çalıştı.
 
-halooglasi veri merkezi IP bloklarını engelliyor. 2026-08-21'de Actions'tan
-ölçüldü: beş farklı curl varyantı (bizim UA, tarayıcı UA, ek başlıklar,
-http1.1, tlsv1.2) ve sitenin ana sayfası dahil **hepsi 403** döndü. Çıkış IP'si
-Azure. Aynı komutlar ev bağlantısından 200 dönüyor. Yani istemci tarafında
-çözülecek bir şey değil, kasıtlı bir IP engeli.
+Bu yüzden zamanlayıcıya sadece *işi başlatma* görevi verildi. İş bir kez
+başladığında 5 saat 25 dakika boyunca kendi içinde döngü kurup **5 dakikada
+bir** tarıyor. Zamanlanmış denemeler saatte iki kez geliyor; zaten çalışan bir
+iş varsa yeni gelen 6 saniyede çıkıyor (`Zaten calisan bir kosu var mi` adımı).
 
-Bu yüzden sistem iki katmanlı:
+Sonuç: taramanın sıklığı GitHub'ın zamanlayıcısına değil, kendi döngümüze bağlı.
 
-| Katman | Kaynaklar | Ne zaman |
-|---|---|---|
-| GitHub Actions | CityExpert + 4zida | 7/24, 5 dakikada bir |
-| Yerel koşu | + halooglasi | Bilgisayar açıkken |
+### Ayarlar
 
-İkisi aynı `state/listings.db` dosyasını repo üzerinden paylaşır, mükerrer
-bildirim olmaz. Kurulum: [`scripts/README.md`](scripts/README.md)
+Repo secret'ları: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`.
+Repo variable: `USER_GENDER` (`f` varsayılan).
 
-Not: VPS de büyük ihtimalle aynı engele takılır, veri merkezi IP'si olduğu için.
+Secret değerleri public repoda da okunamaz; sadece isimleri listelenir.
 
 ## Bilinen sınırlar
 
 - **Ulaşım süreleri tahmindir.** Koordinat veren tek kaynak CityExpert; diğerlerinde
   semt/opština tablosundan tahmin ediliyor. Kesin süre için Google Maps'e bakılmalı.
-- **halooglasi sadece yerel koşuda gelir.** Veri merkezi IP'leri engelli.
+- **halooglasi sadece yerel koşuda gelir.** Site veri merkezi IP'lerini
+  engelliyor, bu yüzden Actions'tan çekilemiyor. Ölçüldü: beş farklı curl
+  varyantı ve sitenin ana sayfası dahil hepsi Actions'tan 403 döndü, aynı
+  komutlar ev bağlantısından 200 dönüyor.
 - **`nekretnine.rs` ve Facebook grupları kapsam dışı.** Cloudflare / oturum gerektiriyor.
 - **halooglasi mobilya alanı vermiyor**; o ilanlar `masa-dogrulanmali` bayrağıyla gelir - yatak ve çalışma masası ilan metninden teyit edilmeli.
 - **Otomatik mesaj gönderilmez.** Sistem taslağı hazırlar, göndermeye kullanıcı karar verir.
