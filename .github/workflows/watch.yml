@@ -1,63 +1,112 @@
 name: ev-nobetcisi
 
+# Neden bu tuhaf yapi:
+#
+# GitHub ucretsiz repolarda `schedule` tetikleyicisini duzenli calistirmiyor.
+# Olculdu (2026-08-22): */5 cron ile 70 dakikada SADECE 1 kosu tetiklendi,
+# ayni surede elle atilan workflow_dispatch'lerin hepsi aninda calisti.
+# Yani zamanlayiciya guvenip "5 dakikada bir kos" demek ise yaramiyor.
+#
+# Cozum: zamanlayiciya sadece ISI BASLATMA gorevi veriliyor. Is bir kez
+# basladiginda ~5,5 saat boyunca kendi icinde dongu kurup 5 dakikada bir
+# tariyor. Sik zamanlanmis denemelerden birinin tutmasi yeterli; zaten
+# calisan bir is varsa yeni gelen saniyeler icinde cikiyor.
+#
+# Public repoda GitHub-hosted runner dakikalari ucretsiz ve sinirsiz oldugu
+# icin uzun suren is bir maliyet yaratmiyor. Private repoda bu yapi
+# calismaz - aylik kotayi tek gunde bitirir.
+
 on:
   schedule:
-    # 30 dakika, bilerek. Private repo ucretsiz kotasi ayda 2000 Actions
-    # dakikasi ve GitHub her kosuyu yukari yuvarliyor. */5 gunde 288 kosu
-    # demek, kotayi ~7 gunde bitirir ve ayin kalani hic calismaz.
-    # */30 gunde 48 kosu = ayda ~1440 dakika, kotaya sigiyor.
-    # Asil tarama yerel kosuda (scripts/yerel-kosu.ps1); bu katman
-    # bilgisayar kapaliyken devreye giren yedek.
-    - cron: "*/30 * * * *"
+    # Sadece yeniden baslatici. Cogu deneme "zaten calisiyor" deyip cikacak.
+    # Saat basi bilerek kullanilmadi: GitHub'in en yogun oldugu an orasi.
+    - cron: "17,47 * * * *"
   workflow_dispatch:
 
 permissions:
   contents: write
-
-# Iki kosu ayni anda calisip state dosyasini ezmesin.
-concurrency:
-  group: watcher
-  cancel-in-progress: false
+  actions: read
 
 jobs:
-  watch:
+  tara:
     runs-on: ubuntu-latest
+    timeout-minutes: 350
+
     steps:
       - uses: actions/checkout@v4
 
+      - name: Zaten calisan bir kosu var mi
+        id: nobet
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Ayni workflow'un devam eden baska bir kosusu varsa ve o benden
+          # once basladiysa (daha kucuk id), bu kosu gereksiz - cik.
+          ONCEKI=$(gh api \
+            "repos/$GITHUB_REPOSITORY/actions/workflows/watch.yml/runs?status=in_progress&per_page=100" \
+            --jq "[.workflow_runs[] | select(.id < ${GITHUB_RUN_ID})] | length")
+          echo "devam eden onceki kosu: $ONCEKI"
+          if [ "$ONCEKI" -gt 0 ]; then
+            echo "devam=hayir" >> "$GITHUB_OUTPUT"
+          else
+            echo "devam=evet" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/setup-python@v5
+        if: steps.nobet.outputs.devam == 'evet'
         with:
           python-version: "3.11"
           cache: pip
 
       - name: Bagimliliklari kur
+        if: steps.nobet.outputs.devam == 'evet'
         run: pip install -e .
 
-      - name: Nobetciyi calistir
+      - name: Nobet dongusu
+        if: steps.nobet.outputs.devam == 'evet'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           USER_GENDER: ${{ vars.USER_GENDER || 'f' }}
-        run: python run.py
-
-      - name: Durumu commit'le
         run: |
           git config user.name "ev-nobetcisi"
           git config user.email "actions@github.com"
-          git add state/
-          if git diff --staged --quiet; then
-            echo "durum degismedi"
-            exit 0
-          fi
-          git commit -m "durum guncellendi [skip ci]"
-          # Baska bir kosu araya girdiyse once onun degisikligini al.
-          for attempt in 1 2 3; do
-            if git push; then
-              exit 0
-            fi
-            echo "push carpisti, yeniden deneniyor ($attempt)"
-            git pull --rebase --autostash
-          done
-          echo "push basarisiz - bir sonraki kosu tekrar dener"
 
-# Kayit tetikleyici: GitHub ilk push ta workflow u indekslemedi.
+          ARALIK=300            # 5 dakika
+          SURE=19500            # 5 saat 25 dakika (6 saatlik is limitinin altinda)
+          KAYIT_HER=6           # her 6 turda bir (~30 dk) durumu repoya yaz
+          BITIS=$(( $(date +%s) + SURE ))
+          TUR=0
+
+          durumu_kaydet () {
+            git add state/
+            if git diff --staged --quiet; then
+              return 0
+            fi
+            git commit -q -m "durum guncellendi [skip ci]"
+            for deneme in 1 2 3; do
+              if git push -q; then return 0; fi
+              echo "push carpisti, yeniden deneniyor ($deneme)"
+              git pull -q --rebase --autostash || true
+            done
+            echo "UYARI: durum gonderilemedi"
+          }
+
+          while [ "$(date +%s)" -lt "$BITIS" ]; do
+            TUR=$(( TUR + 1 ))
+            echo "--- tur $TUR ($(date -u +%H:%M:%S) UTC) ---"
+
+            # Tek bir tur hata verirse dongu durmasin.
+            python run.py || echo "UYARI: bu tur hata verdi, devam ediliyor"
+
+            if [ $(( TUR % KAYIT_HER )) -eq 0 ]; then
+              durumu_kaydet
+            fi
+
+            KALAN=$(( BITIS - $(date +%s) ))
+            if [ "$KALAN" -le "$ARALIK" ]; then break; fi
+            sleep "$ARALIK"
+          done
+
+          echo "--- dongu bitti, $TUR tur yapildi ---"
+          durumu_kaydet
